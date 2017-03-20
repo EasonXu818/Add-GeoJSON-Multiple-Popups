@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>浦东新区</title>
+
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=7,IE=9">
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+
+	<!-- ArcGIS API for JavaScript CSS-->
+    <link rel="stylesheet" href="http://js.arcgis.com/3.13/esri/css/esri.css">
+    <link rel="stylesheet" href="http://js.arcgis.com/3.13/dijit/themes/claro/claro.css">
+	<!-- Web Framework CSS - Bootstrap (getbootstrap.com) and Bootstrap-map-js (github.com/esri/bootstrap-map-js) -->
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="./css/bootstrap.min.css">
+	<!-- PopExtendCss -->
+    <link href="./vendor/ncam/PopupExtended.css" rel="stylesheet" />
+
+	<style>
+	html, body, #mapDiv {
+	  height: 100%;
+	  width: 100%;
+	  box-sizing: content-box;
+	}
+
+	.buttonRight{
+		position: absolute;
+	    z-index: 999;
+	   
+	}
+	.hzLine{
+		border: none;
+   		border-top: 1px solid #333333;
+    	margin-top: 6px;
+   		margin-bottom: 6px;
+	}
+	.popupTitle{
+		font-size: 25px;
+	}
+	.popupContent{
+		font-size: 20px;
+	}
+	i{
+		padding-right: 10px;
+	}
+	</style>
+
+	<!-- ArcGIS API for JavaScript library references -->
+	<script>
+        var dojoConfig = {
+            parseOnLoad: false,
+            async: true,
+            tlmSiblingOfDojo: false,
+            packages: [{
+                name: "ncam",
+                location: location.pathname.replace(/\/[^/]+$/, '') + "ncam"
+            }]
+        };
+    </script>
+
+	<!-- ArcGIS API for JavaScript library references -->
+	<script src="//js.arcgis.com/3.10"></script>
+
+	<!-- Terraformer reference -->
+	<script src="./vendor/terraformer/terraformer.min.js"></script>
+	<script src="./vendor/jquery.js"></script>
+	<script src="./vendor/terraformer-arcgis-parser/terraformer-arcgis-parser.min.js"></script>
+
+
+
+</head>
+<body>
+	 <div id="mapDiv"></div>
+	 <button type="line" id="shanghaiPoint" class="btn btn-default buttonRight" style="top:20px;right:20px">上海区各点</button>
+	 <button type="point" id="threeLine" class="btn btn-default buttonRight" style="top:70px;right:20px">三条航线</button>
+	 <script>
+		var map;
+		var firstPointInit = true;
+		var firstLineInit = true;
+
+		//create a baseMap
+	    require(["esri/map",
+	        "dojo/on",
+	        "dojo/dom",
+	        "dojo/domReady!"],
+	      function (Map, on, dom) {
+
+	        // Create map
+	         map = new Map("mapDiv", {
+	            basemap: "topo",
+	            center: [120.5, 31.5],
+	            zoom: 7
+	        });	      
+	    });
+
+	    //add GeoJSON to baseMap , constuct show&hide popup method and add other attribute to graphics
+	    function addGeoJsonToMap(url,otherJson){
+	    	
+	    	 require(["esri/map",
+	        "./src/geojsonlayer.js",
+	        "esri/geometry/Point", "esri/SpatialReference",
+	        "dojo/on",
+	        "dojo/dom",
+	        "dojo/domReady!"],
+		      function (Map, GeoJsonLayer, Point, SpatialReference,on, dom) {
+
+	    	 	var hasThisLayer=false;
+	    	 	otherJson=otherJson?otherJson:"";
+	    	 	hideAllPopup()
+
+		       	map.getLayersVisibleAtScale().forEach(function(item){
+		       		if(item._url==url&&item.dataType=="geojson"){
+		       			console.log(item)
+		       			item.show();
+		       			console.log("dd")
+		       			showAllPopup(item);
+		       			hasThisLayer=true;
+		       			// map.setExtent(item.extent)
+		       		}else if(item._url!=url&&item.dataType=="geojson"){
+		       			item.hide();
+		       		}
+		       	})
+
+		       	if(!hasThisLayer){
+		       		addGeoJsonLayer(url);
+		       
+		       	
+		       	}
+
+		       	//show all popups
+		       	function showAllPopup(layer){
+		       		console.log(layer)
+		       		if(layer.graphics[0].geometry.type=="point"){
+		       			
+		       			//console.log(layer.graphics[0].geometry.type)
+		       			layer.graphics.forEach(function(item){
+		       				
+		       				if(firstPointInit&&otherJson[item.attributes.name]){
+		       					addAttrToGrpahics(item,layer.graphics[0].geometry.type)
+		       				}
+		       				
+		       			    var loc = map.toScreen(item.geometry);
+			                map.infoWindow.setFeatures([item]);
+			                map.infoWindow.show(loc);
+		       			})
+		       			firstPointInit=false;
+		       		}else if(layer.graphics[0].geometry.type=="polyline"){
+		       			layer.graphics.forEach(function(item){
+		       				if(firstLineInit&&otherJson[item.attributes.name]){
+		       					addAttrToGrpahics(item,layer.graphics[0].geometry.type)
+		       				}
+		       				var tempPath = item.geometry.paths[0];
+		       				var tempPoint = new Point(tempPath[Math.floor(tempPath.length/2)][0], tempPath[Math.floor(tempPath.length/2)][1], new SpatialReference({ wkid: item.geometry.spatialReference.wkid }));
+		       			    var loc = map.toScreen(tempPoint);
+			                map.infoWindow.setFeatures([item]);
+			                map.infoWindow.show(loc);
+		       			})
+		       			firstLineInit=false;
+		       		}
+		       		
+		       	}
+
+		       	//hide all popups
+		       	function hideAllPopup(){
+		       		if(map.infoWindow.openPopups&&map.infoWindow.openPopups.length>0){
+		       			var tempLength = map.infoWindow.openPopups.length;
+		       			console.log(map.infoWindow.openPopups.length)
+		       			for(var i=0;i<tempLength;i++){
+		       				map.infoWindow.openPopups[0].hide()
+		       			}
+		       			
+		       		}
+		       	}
+
+		       	//add other attribute to grpahics for popup
+		       	function addAttrToGrpahics(item,type){
+		       		item.attributes["waveheight"] = otherJson[item.attributes.name].waveheight?otherJson[item.attributes.name].waveheight:"--";
+		       		item.attributes["waveheight"] = otherJson[item.attributes.name].waveheight?otherJson[item.attributes.name].waveheight:"--";
+		       		item.attributes["wavedirection"] = otherJson[item.attributes.name].wavedirection?otherJson[item.attributes.name].wavedirection:"--";
+		       		if(otherJson[item.attributes.name].publishdate){
+		       			var date = new Date(otherJson[item.attributes.name].publishdate)
+		       			var year = date.getFullYear();
+		       			var month = date.getMonth()+1;
+		       			var day = date.getDate();
+		       			var hour = date.getHours();
+		       			var tempStr = 	year+"/"+month+"/"+day+" "+hour+"时"
+		       			item.attributes["publishdate"] = tempStr
+		       		}else{
+		       			item.attributes["publishdate"] = "--"
+		       		}
+		       		item.attributes["windspeed"] = otherJson[item.attributes.name].windspeed?otherJson[item.attributes.name].windspeed:"--";
+		       		item.attributes["winddirection"] = otherJson[item.attributes.name].winddirection?otherJson[item.attributes.name].winddirection:"--";
+		       		item.attributes["comfort"] = otherJson[item.attributes.name].comfort?otherJson[item.attributes.name].comfort:"--";
+		       		
+
+		       	}
+		        
+
+		        // Add the layer
+		        function addGeoJsonLayer(url) {
+		            // Create the layer
+		            var geoJsonLayer = new GeoJsonLayer({
+		            	baseMap:map,
+		                url: url,
+		                onLayerLoaded:function(layer){
+		                	showAllPopup(layer);
+		                }              
+		            });
+
+		            // Add to map
+		            geoJsonLayer.dataType="geojson"; 
+		            map.addLayer(geoJsonLayer);
+		          
+		           
+		        }
+		    });
+	    }
+
+	    $("#shanghaiPoint").click(function(){
+	    	// if first init geojsonlayer
+	    	if(firstPointInit){
+	    		var requestBZ = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/80';
+				var requestWGQ = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/81';
+				var requestHS = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/82';
+				var requestLCG = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/83';
+				var requestJHG = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/84';
+				var requestJSW = 'http://wx.dhybzx.org:18080/forecast/shanghai_sea_env/85';
+				var urls = [requestBZ, requestWGQ,requestHS,requestLCG,requestJHG,requestJSW]
+
+				Promise.all(urls.map(url =>
+				    fetch(url).then(resp => resp.json())
+				)).then(results => {
+				    
+				var tempJson = {
+				 	"堡镇":results[0][0],
+				 	"外高桥":results[1][0],
+				 	"横沙":results[2][0],
+				 	"芦潮港":results[3][0],
+				 	"金汇港":results[4][0],
+				 	"金山卫":results[5][0]
+				}
+				    console.log(tempJson)
+				    addGeoJsonToMap("./data/six_point.json",tempJson)
+
+				});
+	    	}else{
+	    		//geojsonlayer has been initial
+	    		 addGeoJsonToMap("./data/six_point.json")
+	    	}
+	    
+	    })
+
+	    $("#threeLine").click(function(){
+	    	if(firstLineInit){
+		    	var requestWSCM = 'http://wx.dhybzx.org:18080/forecast/course_line/43';
+				var requestWSPTS = 'http://wx.dhybzx.org:18080/forecast/course_line/44';
+				var requestXYSSS = 'http://wx.dhybzx.org:18080/forecast/course_line/45';
+				var urls = [requestWSCM, requestWSPTS,requestXYSSS]
+
+				Promise.all(urls.map(url =>
+				    fetch(url).then(resp => resp.json())
+				)).then(results => {
+				    
+				    var tempJson = {
+				    	"小洋山--嵊泗":results[2][0],
+				    	"上海港吴淞客运中心--普陀区":results[1][0],
+				    	"上海港吴淞客运中心 --崇明三岛":results[0][0]
+				    }
+				    console.log(tempJson)
+				   
+		    	addGeoJsonToMap("./data/three_polyline.json",tempJson)
+
+				});
+			}else{
+				addGeoJsonToMap("./data/three_polyline.json")
+			}
+	    })
+	</script>
+</body>
+</html>

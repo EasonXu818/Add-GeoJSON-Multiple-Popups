@@ -1,0 +1,39 @@
+{
+    "type": "FeatureCollection",
+    "features": [{
+        "type": "Feature",
+        "properties": {
+            "Id": 0,
+             "name": "堡镇"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [121.6248960000, 31.5422420000]  //堡镇
+        }
+    }, {
+        "type": "Feature",
+        "properties": { "Id": 1,
+             "name": "横沙" },
+        "geometry": { "type": "Point", "coordinates": [121.8484360000, 31.3461510000] }   //横沙
+    }, {
+        "type": "Feature",
+        "properties": { "Id": 2 ,
+             "name": "外高桥" },
+        "geometry": { "type": "Point", "coordinates": [121.5944330000, 31.3487830000] }  //外高桥
+    }, {
+        "type": "Feature",
+        "properties": { "Id": 3,
+             "name": "芦潮港"},
+        "geometry": { "type": "Point", "coordinates": [121.8834180000, 30.9913720000] }  //湖潮港
+    }, {
+        "type": "Feature",
+        "properties": { "Id": 4,
+             "name": "金汇港" },
+        "geometry": { "type": "Point", "coordinates": [121.5066080000, 30.9706370000] }  //金汇港
+    }, {
+        "type": "Feature",
+        "properties": { "Id": 5,
+             "name": "金山卫"},
+        "geometry": { "type": "Point", "coordinates": [121.3693150000, 30.7336960000] }  //金山卫
+    }]
+}
